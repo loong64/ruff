@@ -86,11 +86,13 @@ jobs:
           - target: loongarch64-unknown-linux-gnu
             arch: loongarch64
             manylinux: 'manylinux_2_36'
-            maturin_docker_options: -e JEMALLOC_SYS_WITH_LG_PAGE=16
+            maturin_docker_options: >-
+              -e JEMALLOC_SYS_WITH_LG_PAGE=16
           - target: "loongarch64-unknown-linux-musl"
             arch: loongarch64
             manylinux: "musllinux_1_2"
-            maturin_docker_options: -e JEMALLOC_SYS_WITH_LG_PAGE=16
+            maturin_docker_options: >-
+              -e JEMALLOC_SYS_WITH_LG_PAGE=16
 
     steps:
       - uses: actions/checkout@v4
@@ -103,14 +105,25 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: "Prep README.md"
-        run: python scripts/transform_readme.py --target pypi
+        run: | 
+          python scripts/transform_readme.py --target pypi
+          # case "${{ matrix.platform.target }}" in
+          #   loongarch64-unknown-linux-gnu)
+          #     docker pull ghcr.io/loong64/manylinux_2_36-cross@sha256:5cf3520f53b863cf949409f040b07fa43cbc852441186c790cef162b9ff9b4ee
+          #     docker tag ghcr.io/loong64/manylinux_2_36-cross@sha256:5cf3520f53b863cf949409f040b07fa43cbc852441186c790cef162b9ff9b4ee ghcr.io/loong64/manylinux_2_36-cross:loongarch64
+          #     ;;
+          #   loongarch64-unknown-linux-musl)
+          #     docker pull ghcr.io/loong64/musllinux_1_2-cross@sha256:161b7ba3d2dbe59bb7f74f646048dccba284f44bd253591ecd49a53f3c7877c5
+          #     docker tag ghcr.io/loong64/musllinux_1_2-cross@sha256:161b7ba3d2dbe59bb7f74f646048dccba284f44bd253591ecd49a53f3c7877c5 ghcr.io/loong64/musllinux_1_2-cross:loongarch64
+          #     ;;
+          # esac
       - name: "Build wheels"
         uses: loong64/maturin-action@main
         with:
           target: ${{ matrix.platform.target }}
           manylinux: ${{ matrix.platform.manylinux }}
           docker-options: ${{ matrix.platform.maturin_docker_options }}
-          args: --release --locked --out dist
+          args: --release --locked --out dist --verbose
       - name: "Upload wheels"
         run: |
           pip install twine==6.0.1
